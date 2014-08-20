@@ -1,0 +1,19 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".Roller" >
+    <item android:id="@+id/action_settings"
+        android:title="@string/action_settings"
+        android:orderInCategory="100"
+        android:showAsAction="never" />
+
+    <item android:id="@+id/action_value"
+        android:title="@string/loot_value"
+        android:orderInCategory="25"
+        android:showAsAction="ifRoom" />
+
+    <item android:id="@+id/action_reroll"
+        android:title="@string/reroll"
+        android:icon="@drawable/dice_2d6"
+        android:orderInCategory="50"
+        android:showAsAction="ifRoom" />
+</menu>
