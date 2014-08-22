@@ -8,11 +8,11 @@
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name=".Roller"
+            android:name=".RollerActivity"
             android:label="@string/app_name" >
         </activity>
         <activity
-            android:name="Parameterizer"
+            android:name=".ParameterizerActivity"
             android:label="@string/title_activity_parameterizer" >
 
             <intent-filter>
@@ -23,5 +23,7 @@
 
         </activity>
     </application>
+
+
 
 </manifest>

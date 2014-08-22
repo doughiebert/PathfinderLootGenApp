@@ -7,6 +7,6 @@
     <string name="encounter_level">Encounter Level</string>
     <string name="roll">Roll the Loot!</string>
     <string name="reroll">Reroll</string>
-    <string name="loot_value">Total: %1$d %2$s</string>
+    <string name="loot_value">Worth %1$d %2$s</string>
 
 </resources>

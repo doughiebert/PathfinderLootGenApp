@@ -6,7 +6,7 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     android:paddingBottom="@dimen/activity_vertical_margin"
-    tools:context="mereologic.net.pathfinderlootgen.Parameterizer.ParameterizerFragment">
+    tools:context="mereologic.net.pathfinderlootgen.ParameterizerActivity.ParameterizerFragment">
 
 
     <LinearLayout
@@ -41,8 +41,7 @@
             android:clickable="true"
             android:text="@string/roll"
             android:drawableLeft="@drawable/dice_2d6_200dip"
-            android:scaleType="fitCenter"
-            android:onClick="roll" />
+            android:scaleType="fitCenter"/>
 
     </LinearLayout>
 </RelativeLayout>

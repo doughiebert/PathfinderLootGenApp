@@ -1,8 +1,7 @@
 package mereologic.net.pathfinderlootgen;
 
-import android.app.ListActivity;
-import android.content.AsyncTaskLoader;
-import android.content.Loader;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.database.DataSetObserver;
 import android.os.Bundle;
 import android.view.GestureDetector;
@@ -16,16 +15,19 @@ import android.view.ViewGroup;
 import android.widget.AbsListView.LayoutParams;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
-import static android.app.LoaderManager.LoaderCallbacks;
+import android.support.v7.app.ActionBarActivity;
+
+import static android.support.v4.app.LoaderManager.LoaderCallbacks;
 
 
-public class Roller extends ListActivity {
+public class RollerActivity extends ActionBarActivity {
 
     private static final String TREASURE_PARCEL_KEY = "mereologic.net.roller.treasure";
     private static final int ROLLER_LOADER = 1;
@@ -38,6 +40,7 @@ public class Roller extends ListActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_roller);
         showProgressSpinnerWhenRolling();
         if (savedInstanceState == null) {
             treasure = new ArrayList<Treasure>();
@@ -103,6 +106,10 @@ public class Roller extends ListActivity {
         root.addView(progressBar);
     }
 
+    private ListView getListView() {
+        return (ListView) findViewById(R.id.loot_list);
+    }
+
     private void enableRerollItemOnLongClick() {
         getListView().setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
@@ -116,12 +123,12 @@ public class Roller extends ListActivity {
 
     private void rollTreasureAsync() {
         Logger.getAnonymousLogger().info("restartLoader");
-        getLoaderManager().restartLoader(ROLLER_LOADER, getIntent().getExtras(), new LoaderCallbacks<ArrayList<Treasure>>() {
+        getSupportLoaderManager().restartLoader(ROLLER_LOADER, getIntent().getExtras(), new LoaderCallbacks<ArrayList<Treasure>>() {
 
             @Override
             public Loader<ArrayList<Treasure>> onCreateLoader(int i, final Bundle bundle) {
                 Logger.getAnonymousLogger().info("creating async loader");
-                return new AsyncTaskLoader<ArrayList<Treasure>>(Roller.this) {
+                return new AsyncTaskLoader<ArrayList<Treasure>>(RollerActivity.this) {
                     @Override
                     public ArrayList<Treasure> loadInBackground() {
                         return LootGenerator.generate(bundle.getInt(LEVEL), LootGenerator.Progression.SLOW);
@@ -170,10 +177,10 @@ public class Roller extends ListActivity {
         treasureArrayAdapter.registerDataSetObserver(new DataSetObserver() {
             @Override
             public void onChanged() {
-                invalidateOptionsMenu();
+            supportInvalidateOptionsMenu();
             }
         });
-        setListAdapter(treasureArrayAdapter);
+        getListView().setAdapter(treasureArrayAdapter);
     }
 
     public Coins totalValue(ArrayList<? extends Treasure> treasure) {
