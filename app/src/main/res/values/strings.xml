@@ -8,5 +8,6 @@
     <string name="roll">Roll the Loot!</string>
     <string name="reroll">Reroll</string>
     <string name="loot_value">Worth %1$d %2$s</string>
+    <string name="about">Pathfinder Loot Generator!</string>
 
 </resources>

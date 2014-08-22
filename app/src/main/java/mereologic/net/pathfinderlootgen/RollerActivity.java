@@ -4,6 +4,7 @@ import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
 import android.database.DataSetObserver;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.Menu;
@@ -11,6 +12,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.AbsListView.LayoutParams;
 import android.widget.AdapterView;
@@ -23,6 +25,13 @@ import java.util.ArrayList;
 import java.util.logging.Logger;
 
 import android.support.v7.app.ActionBarActivity;
+
+import com.nineoldandroids.animation.AnimatorSet;
+import com.nineoldandroids.animation.ArgbEvaluator;
+import com.nineoldandroids.animation.ObjectAnimator;
+import com.nineoldandroids.animation.ValueAnimator;
+import com.nineoldandroids.view.ViewPropertyAnimator;
+import static com.nineoldandroids.view.ViewPropertyAnimator.animate;
 
 import static android.support.v4.app.LoaderManager.LoaderCallbacks;
 
@@ -41,6 +50,7 @@ public class RollerActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_roller);
+        DropDownNavigation.addDropDownNav(this);
         showProgressSpinnerWhenRolling();
         if (savedInstanceState == null) {
             treasure = new ArrayList<Treasure>();
@@ -111,18 +121,59 @@ public class RollerActivity extends ActionBarActivity {
     }
 
     private void enableRerollItemOnLongClick() {
+        getListView().setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View itemView, int position, long id) {
+                Log.i("onitemclick", "click for item at pos " + position);
+                playRollAnimation(itemView);
+            }
+        });
+
+        /*
+
+        TODO: going from touch to list item is apparently really hard
+
+        getListView().setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                ListView listView = (ListView) v;
+                Log.i("ontouch", "touch at position " + event.getX() + " , " + event.getY());
+                for (int x = 0; x < listView.getChildCount(); x++) {
+                    View itemView = listView.getChildAt(x);
+                    Log.i("ontouch", "checking for touch on child " + x + " with bounds " + itemView.getClipBounds());
+                    boolean contains = itemView.get().contains( (int) event.getX(), (int) event.getY());
+                    playRollAnimation(itemView);
+                }
+                return false;
+            }
+        });
+
+         */
+
         getListView().setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
-            public boolean onItemLongClick(AdapterView<?> adapterView, View view, int position, long id) {
-                treasure.set(position, treasure.get(position).reroll());
-                treasureArrayAdapter.notifyDataSetChanged();
-                return true;
+            public boolean onItemLongClick(AdapterView<?> parent, View itemView, int position, long id) {
+                rerollTreasureAtPosition(position);
+                return false;
             }
         });
     }
 
+    private void playRollAnimation(View itemView) {
+        AnimatorSet rollAnimation = new AnimatorSet();
+        rollAnimation.play(ObjectAnimator.ofFloat(itemView, "translationX", 100, -100, 100, -100, 0));
+        rollAnimation.setDuration(ViewConfiguration.getLongPressTimeout());
+        rollAnimation.start();
+    }
+
+    private void rerollTreasureAtPosition(int position) {
+        treasure.set(position, treasure.get(position).reroll());
+        treasureArrayAdapter.notifyDataSetChanged();
+    }
+
     private void rollTreasureAsync() {
         Logger.getAnonymousLogger().info("restartLoader");
+
         getSupportLoaderManager().restartLoader(ROLLER_LOADER, getIntent().getExtras(), new LoaderCallbacks<ArrayList<Treasure>>() {
 
             @Override
