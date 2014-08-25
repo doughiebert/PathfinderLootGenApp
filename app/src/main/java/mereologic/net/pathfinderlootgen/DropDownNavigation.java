@@ -22,9 +22,10 @@ public class DropDownNavigation {
 
     public static final String START_OVER = "Start Over";
     public static final String ABOUT = "About";
+    public static final String SETTINGS = "Settings";
 
-    private static final List<String> DROP_DOWN_TEXT = Arrays.asList(START_OVER, ABOUT);
-    private static final List<Integer> DROP_DOWN_ICONS = Arrays.asList(R.drawable.icon_start_over, R.drawable.icon_about);
+    private static final List<String> DROP_DOWN_TEXT = Arrays.asList(START_OVER, ABOUT, SETTINGS);
+    private static final List<Integer> DROP_DOWN_ICONS = Arrays.asList(R.drawable.icon_start_over, R.drawable.icon_about, android.R.drawable.ic_menu_preferences);
 
     private DropDownNavigation() {}
 
@@ -73,6 +74,9 @@ public class DropDownNavigation {
                         }
                     });
                     builder.show();
+                    return true;
+                case 2: // preferences
+                    this.activity.startActivity(new Intent(this.activity, SettingsActivity.class));
                     return true;
             }
             return false;

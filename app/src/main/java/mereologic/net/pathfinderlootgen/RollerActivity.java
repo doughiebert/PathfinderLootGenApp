@@ -1,10 +1,11 @@
 package mereologic.net.pathfinderlootgen;
 
+import android.graphics.Rect;
+import android.preference.PreferenceManager;
 import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
 import android.database.DataSetObserver;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.Menu;
@@ -27,11 +28,7 @@ import java.util.logging.Logger;
 import android.support.v7.app.ActionBarActivity;
 
 import com.nineoldandroids.animation.AnimatorSet;
-import com.nineoldandroids.animation.ArgbEvaluator;
 import com.nineoldandroids.animation.ObjectAnimator;
-import com.nineoldandroids.animation.ValueAnimator;
-import com.nineoldandroids.view.ViewPropertyAnimator;
-import static com.nineoldandroids.view.ViewPropertyAnimator.animate;
 
 import static android.support.v4.app.LoaderManager.LoaderCallbacks;
 
@@ -45,6 +42,7 @@ public class RollerActivity extends ActionBarActivity {
     private GestureDetector gestureDetector;
     private ArrayList<Treasure> treasure;
     private ArrayAdapter<Treasure> treasureArrayAdapter;
+    private Menu menu;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,34 +119,71 @@ public class RollerActivity extends ActionBarActivity {
     }
 
     private void enableRerollItemOnLongClick() {
-        getListView().setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        getListView().setOnTouchListener(new AdapterView.OnTouchListener() {
+
+            private AnimatorSet rollAnimation;
+            private View currentlyAnimating;
+
             @Override
-            public void onItemClick(AdapterView<?> parent, View itemView, int position, long id) {
-                Log.i("onitemclick", "click for item at pos " + position);
-                playRollAnimation(itemView);
-            }
-        });
-
-        /*
-
-        TODO: going from touch to list item is apparently really hard
-
-        getListView().setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                ListView listView = (ListView) v;
-                Log.i("ontouch", "touch at position " + event.getX() + " , " + event.getY());
-                for (int x = 0; x < listView.getChildCount(); x++) {
-                    View itemView = listView.getChildAt(x);
-                    Log.i("ontouch", "checking for touch on child " + x + " with bounds " + itemView.getClipBounds());
-                    boolean contains = itemView.get().contains( (int) event.getX(), (int) event.getY());
-                    playRollAnimation(itemView);
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                ListView listView = getListView();
+                switch(motionEvent.getActionMasked()) {
+                    case MotionEvent.ACTION_DOWN:
+                        View itemView = findChildHit(motionEvent, listView);
+                        if (itemView != null) {
+                            startRollAnimation(itemView);
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        stopRollAnimation();
+                        break;
                 }
                 return false;
             }
-        });
 
-         */
+            private void stopRollAnimation() {
+                if (currentlyAnimating != null) {
+                    clearCurrentAnimation();
+                }
+            }
+
+            private void clearCurrentAnimation() {
+                rollAnimation.cancel();
+                currentlyAnimating.clearAnimation();
+                rollAnimation = null;
+                currentlyAnimating = null;
+            }
+
+            private void startRollAnimation(View view) {
+                if (currentlyAnimating != null) {
+                    clearCurrentAnimation();
+                }
+                currentlyAnimating = view;
+                int rollDist = 25;
+                rollAnimation = new AnimatorSet();
+                rollAnimation.play(ObjectAnimator.ofFloat(view, "translationX", rollDist, -rollDist, rollDist, -rollDist, 0));
+                rollAnimation.setDuration(ViewConfiguration.getLongPressTimeout());
+                rollAnimation.start();
+            }
+
+            private View findChildHit(MotionEvent motionEvent, ListView listView) {
+                Rect rect = new Rect();
+                int childCount = listView.getChildCount();
+                int[] listViewCoords = new int[2];
+                listView.getLocationOnScreen(listViewCoords);
+                int x = (int) motionEvent.getRawX() - listViewCoords[0];
+                int y = (int) motionEvent.getRawY() - listViewCoords[1];
+                View child;
+                for (int i = 0; i < childCount; i++) {
+                    child = listView.getChildAt(i);
+                    child.getHitRect(rect);
+                    if (rect.contains(x, y)) {
+                        return child;
+                    }
+                }
+                return null;
+            }
+        });
 
         getListView().setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
             @Override
@@ -160,8 +195,9 @@ public class RollerActivity extends ActionBarActivity {
     }
 
     private void playRollAnimation(View itemView) {
+        int rollDist = 50;
         AnimatorSet rollAnimation = new AnimatorSet();
-        rollAnimation.play(ObjectAnimator.ofFloat(itemView, "translationX", 100, -100, 100, -100, 0));
+        rollAnimation.play(ObjectAnimator.ofFloat(itemView, "translationX", rollDist, -rollDist, rollDist, -rollDist, 0));
         rollAnimation.setDuration(ViewConfiguration.getLongPressTimeout());
         rollAnimation.start();
     }
@@ -235,7 +271,11 @@ public class RollerActivity extends ActionBarActivity {
     }
 
     public Coins totalValue(ArrayList<? extends Treasure> treasure) {
-        Coins total = Coins.Type.SILVER.coins(0);
+        Coins.Type coinType = Coins.Type.valueOf(PreferenceManager
+                .getDefaultSharedPreferences(this)
+                .getString("total_coin_type", Coins.Type.SILVER.name()));
+
+        Coins total = coinType.coins(0);
         for (Treasure t : treasure) {
             total = total.add(t.getValue());
         }
@@ -243,11 +283,24 @@ public class RollerActivity extends ActionBarActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (this.menu != null) {
+            updateMenuWithTotalLootValue(this.menu);
+        }
+    }
+
+    @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
+        this.menu = menu;
+        updateMenuWithTotalLootValue(menu);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    private void updateMenuWithTotalLootValue(Menu menu) {
         MenuItem item = menu.findItem(R.id.action_value);
         Coins totalValue = totalValue(this.treasure);
         item.setTitle(getResources().getString(R.string.loot_value, totalValue.getQuantity(), totalValue.getType().toString()));
-        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override

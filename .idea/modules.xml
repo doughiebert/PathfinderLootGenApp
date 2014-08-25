@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/PathfinderLootGen.iml" filepath="$PROJECT_DIR$/PathfinderLootGen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/PathfinderLootGenApp.iml" filepath="$PROJECT_DIR$/PathfinderLootGenApp.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>
   </component>

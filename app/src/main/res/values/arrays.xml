@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="pref_example_list_values">
+        <item>PLATINUM</item>
+        <item>GOLD</item>
+        <item>SILVER</item>
+        <item>COPPER</item>
+    </string-array>
+    <string-array name="total_coin_type_entries">
+        <item>Platinum</item>
+        <item>Gold</item>
+        <item>Silver</item>
+        <item>Copper</item>
+    </string-array>
+</resources>
