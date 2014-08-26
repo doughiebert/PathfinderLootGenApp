@@ -6,6 +6,7 @@ import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
 import android.database.DataSetObserver;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.Menu;
@@ -40,7 +41,7 @@ public class RollerActivity extends ActionBarActivity {
     public static String LEVEL = "mereologic.net.roller.level";
 
     private GestureDetector gestureDetector;
-    private ArrayList<Treasure> treasure;
+    private ArrayList<Treasure> treasure = new ArrayList<Treasure>();
     private ArrayAdapter<Treasure> treasureArrayAdapter;
     private Menu menu;
 
@@ -50,11 +51,14 @@ public class RollerActivity extends ActionBarActivity {
         setContentView(R.layout.activity_roller);
         DropDownNavigation.addDropDownNav(this);
         showProgressSpinnerWhenRolling();
+        createTreasureListAdapter(treasure);
+        enableRerollItemOnLongClick();
+
         if (savedInstanceState == null) {
-            treasure = new ArrayList<Treasure>();
             rollTreasureAsync();
         } else {
-            treasure = savedInstanceState.getParcelableArrayList(TREASURE_PARCEL_KEY);
+            treasure.addAll(savedInstanceState.<Treasure>getParcelableArrayList(TREASURE_PARCEL_KEY));
+            treasureArrayAdapter.notifyDataSetChanged();
             Logger.getAnonymousLogger().info("restored parcelled list of " + treasure.size() + " items.");
         }
 
@@ -69,9 +73,6 @@ public class RollerActivity extends ActionBarActivity {
                 return false;
             }
         });
-
-        createTreasureListAdapter(treasure);
-        enableRerollItemOnLongClick();
     }
 
     @Override
@@ -95,7 +96,7 @@ public class RollerActivity extends ActionBarActivity {
             case R.id.action_reroll:
                 treasure.clear();
                 treasureArrayAdapter.notifyDataSetChanged();
-                rollTreasureAsync();
+                getSupportLoaderManager().getLoader(ROLLER_LOADER).onContentChanged();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -194,50 +195,49 @@ public class RollerActivity extends ActionBarActivity {
         });
     }
 
-    private void playRollAnimation(View itemView) {
-        int rollDist = 50;
-        AnimatorSet rollAnimation = new AnimatorSet();
-        rollAnimation.play(ObjectAnimator.ofFloat(itemView, "translationX", rollDist, -rollDist, rollDist, -rollDist, 0));
-        rollAnimation.setDuration(ViewConfiguration.getLongPressTimeout());
-        rollAnimation.start();
-    }
-
     private void rerollTreasureAtPosition(int position) {
         treasure.set(position, treasure.get(position).reroll());
         treasureArrayAdapter.notifyDataSetChanged();
     }
 
+    private LoaderCallbacks<ArrayList<Treasure>> loaderCallbacks = new LoaderCallbacks<ArrayList<Treasure>>() {
+
+        @Override
+        public Loader<ArrayList<Treasure>> onCreateLoader(int i, final Bundle bundle) {
+            Logger.getAnonymousLogger().info("creating async loader");
+            return new AsyncTaskLoader<ArrayList<Treasure>>(RollerActivity.this) {
+                @Override
+                public ArrayList<Treasure> loadInBackground() {
+                    Logger.getAnonymousLogger().info("loading in background...");
+                    return LootGenerator.generate(bundle.getInt(LEVEL), LootGenerator.Progression.SLOW);
+                }
+
+                @Override
+                protected void onStartLoading() {
+                    deliverResult(loadInBackground());
+                }
+            };
+        }
+
+        @Override
+        public void onLoadFinished(Loader<ArrayList<Treasure>> arrayListLoader, ArrayList<Treasure> treasures) {
+            Logger.getAnonymousLogger().info("async load finished");
+            treasure.clear();
+            treasure.addAll(treasures);
+            treasureArrayAdapter.notifyDataSetChanged();
+        }
+
+        @Override
+        public void onLoaderReset(Loader<ArrayList<Treasure>> arrayListLoader) {
+            Logger.getAnonymousLogger().info("loader is reset");
+        }
+    };
+
     private void rollTreasureAsync() {
         Logger.getAnonymousLogger().info("restartLoader");
 
-        getSupportLoaderManager().restartLoader(ROLLER_LOADER, getIntent().getExtras(), new LoaderCallbacks<ArrayList<Treasure>>() {
-
-            @Override
-            public Loader<ArrayList<Treasure>> onCreateLoader(int i, final Bundle bundle) {
-                Logger.getAnonymousLogger().info("creating async loader");
-                return new AsyncTaskLoader<ArrayList<Treasure>>(RollerActivity.this) {
-                    @Override
-                    public ArrayList<Treasure> loadInBackground() {
-                        return LootGenerator.generate(bundle.getInt(LEVEL), LootGenerator.Progression.SLOW);
-                    }
-                };
-            }
-
-            @Override
-            public void onLoadFinished(Loader<ArrayList<Treasure>> arrayListLoader, ArrayList<Treasure> treasures) {
-                Logger.getAnonymousLogger().info("async load finished");
-                treasure.clear();
-                treasure.addAll(treasures);
-                treasureArrayAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onLoaderReset(Loader<ArrayList<Treasure>> arrayListLoader) {
-                Logger.getAnonymousLogger().info("loader is reset");
-                treasure.clear();
-                treasureArrayAdapter.notifyDataSetChanged();
-            }
-        }).forceLoad();
+        Loader<ArrayList<Treasure>> loader = getSupportLoaderManager().initLoader(ROLLER_LOADER, getIntent().getExtras(), loaderCallbacks);
+        loader.onContentChanged();
     }
 
     private void createTreasureListAdapter(final ArrayList<Treasure> treasures) {
@@ -257,14 +257,12 @@ public class RollerActivity extends ActionBarActivity {
 
                 return convertView;
             }
-
-
         };
 
         treasureArrayAdapter.registerDataSetObserver(new DataSetObserver() {
             @Override
             public void onChanged() {
-            supportInvalidateOptionsMenu();
+                supportInvalidateOptionsMenu();
             }
         });
         getListView().setAdapter(treasureArrayAdapter);
